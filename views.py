@@ -146,8 +146,15 @@ def msmfetch(request):
       probes = request.GET.get('probes')
     except: pass
 
+    timestamps=''
+    try: 
+      timestamps = request.GET.get('timestamps')
+    except: pass
+
     
 
+    if timestamps != '':
+       stop = timestamps.split('_')[0]
     start = stop - interval
     #msm_url = "https://atlas.ripe.net/api/v1/measurement/%d/result/?start=%d&stop=%d&format=txt&limit=%d" % ( int(msm_id), start_t, end_t, limit )
     ### limit doesn't work?

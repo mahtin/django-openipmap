@@ -791,6 +791,7 @@ var PageStateModel = Backbone.Model.extend({
       'msm_ids': [],
       'show_suggestions': true,
       'max_probes': undefined,
+      'timestamps': undefined,
       'probe_ids': undefined
    },
    initialize: function() {
@@ -830,18 +831,29 @@ var PageStateModel = Backbone.Model.extend({
             this.set('max_probes', max_probes);
          }
       }
+      // timestamps
+      if (map.hasOwnProperty('timestamps')) {
+         // expected to be a list of
+         var timestamps = map['timestamps'].split('_');
+         this.set('timestamps', timestamps);
+      }
       // probe_ids
       if (map.hasOwnProperty('probe_ids')) {
          // expected to be a list of
          var probe_ids = map['msm_ids'].split('_');
+         this.set('probe_ids', probe_ids);
       }
    },
    rebuild_page_url: function() {
       var max_probes = this.get('max_probes');
+      var timestamps = this.get('timestamps');
+      var probe_ids = this.get('probe_ids');
       var params = {};
       params['msm_ids'] = this.get('msm_ids').join('_');
       params['show_suggestions'] = this.get('show_suggestions') ? '1' : '0';
       if ( max_probes !== undefined ) { params['max_probes'] = max_probes }
+      if ( timestamps !== undefined ) { params['timestamps'] = '_'.join(timestamps) }
+      if ( probe_ids !== undefined ) { params['probe_ids'] = '_'.join(probe_ids) }
       var query_string = jQuery.param( params );
       new_url = window.location.href.split(/[\?\#]/)[0] + '?' + query_string;
       window.history.pushState(query_string, document.title, new_url);
@@ -1545,6 +1557,7 @@ function show_trace_meta( data ) {
     var probe_cnt = data['probes'].length;
     var probes_q = '';
     var max_probes = PageState.get('max_probes') || MAX_PROBE_COUNT;
+    var timestamps = PageState.get('timestamps') || '';
     if ( probe_cnt > max_probes ) {
         if (PageState.get('max_probes') === undefined) {
            var alert_msg = "probe count too high for viz ({0}), only fetching data for {1} (picked randomly)\nThis may take a while ....".format( probe_cnt, MAX_PROBE_COUNT );
@@ -1571,6 +1584,11 @@ function show_trace_meta( data ) {
             d = new Date().getTime(); d /= 1000; stop = Math.floor(d) 
         }
         start = stop - data['interval'];
+	if (timestamps) {
+	    # Cheap and nasty way to force a timestamp
+	    stop = timestamps[0];
+	    start = timestamps[0];
+	}
         data_desc = "<li><a href='#'>{0} ({1}) {2} probes</a> (latest)</li>".format( data['msm_id'], data['description'], probe_cnt )
     }
     var data_url  = 'msmfetch.json?msm_id={0}&start={1}&stop={2}{3}'.format( data['msm_id'], start, stop, probes_q );
@@ -1621,6 +1639,10 @@ function add_traces() {
         if ( max_probes !== undefined ) {
             PageState.set('max_probes', max_probes ); 
         }
+        var timestamps = $('#set-timestamps').val();
+        if ( timestamps !== undefined ) {
+            PageState.set('timestamps', timestamps ); 
+        }
         add_measurement_to_ui_cb( msm_id );
     });
 }
@@ -1657,6 +1679,7 @@ $(document).ready(function() {
    init_map();
    add_traces();
    $('#set-max-probes').on('change', function(e) { PageState.set('max_probes', parseInt(e.target.value) ) } );
+   $('#set-timestamps').on('change', function(e) { PageState.set('timestamps', e.target.value) } );
    $('#toggle-show-suggestions').on('change', function(e) { PageState.set('show_suggestions', e.target.checked ) } );
 });
 
@@ -1703,6 +1726,12 @@ $(document).ready(function() {
                  <div class="input-group">
                     <span class="input-group-addon" id="basic-addon1">Max probes</span>
                     <input type="text" class="form-control" placeholder="(50)" id="set-max-probes">
+                 </div>
+              </li>
+              <li>
+                 <div class="input-group">
+                    <span class="input-group-addon" id="basic-addon1">Timestamps</span>
+                    <input type="text" class="form-control" placeholder="" id="set-timestamps">
                  </div>
               </li>
               <li>
